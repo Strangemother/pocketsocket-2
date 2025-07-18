@@ -1,5 +1,5 @@
 import std/locks, std/sets
-
+import hook
 ## This example shows a basic chat server over WebSocket.
 ##
 ## To try the example, run the server (nim c -r examples/chat.nim)
