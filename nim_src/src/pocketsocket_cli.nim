@@ -16,7 +16,7 @@ Options:
   --broadcast   Auto broadcast mode
 """
 
-import strutils
+# import strutils
 import docopt
 import pocketsocketpkg/service
 
@@ -24,8 +24,9 @@ let args = docopt(doc, version = "PocketSocket 0.1")
 
 if args["--broadcast"]:
     echo "Applying broadcast mode"
-    service.broadcast_mode = true
+    service.set_broadcast_mode(true)
 
 if args["--run"]:
   echo "Run"
+  service.poke_wake_time()
   service.run_blocking_server()

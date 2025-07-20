@@ -1,12 +1,13 @@
-import os
-import std/strutils, std/hashes, std/locks, std/tables
+import std/hashes
 
 import mummy
 import nimpy
 import nimpy/py_lib as lib
 
+var
+  pyHook: PyObject
 
-proc call_py_hook(
+proc call_py_hook*(
   websocket: WebSocket,
   event: WebSocketEvent,
   message: Message
@@ -18,3 +19,12 @@ proc call_py_hook(
       # echo "Given: ", $info
       result = info.to(int)
     discard info
+
+
+proc hook*(p: PyObject): void =
+  #[
+    The exposed hook proc accepts a python _callable_, called upon
+    message events.
+  ]#
+  # Keep the function as the callable.
+  pyHook = p

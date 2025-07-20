@@ -1,14 +1,16 @@
 # This is just an example to get you started. A typical hybrid package
 # uses this file as the main entry point of the application.
 
-import os
-import std/strutils, std/hashes, std/locks, std/tables
+# import os
+import std/hashes, std/locks, std/tables
 import asyncdispatch
 #import terminal
 import nimpy
-import nimpy/py_lib as lib
+# import nimpy/py_lib as lib
 import mummy, mummy/routers
 import submodule
+
+import websocket_dispatch
 
 
 var
@@ -23,22 +25,22 @@ var
 # Remember to initialize the lock.
 initLock(lock)
 
-proc hook*(p: PyObject): void =
-  #[
-    The exposed hook proc accepts a python _callable_, called upon
-    message events.
-  ]#
-  # Keep the function as the callable.
-  pyHook = p
+# proc hook*(p: PyObject): void =
+#   #[
+#     The exposed hook proc accepts a python _callable_, called upon
+#     message events.
+#   ]#
+#   # Keep the function as the callable.
+#   pyHook = p
 
 
-proc upgradeHandler(request: Request) =
-  #[
-    Given a new request, assume a websocket and upgrade.
-  ]#
-  let websocket = request.upgradeToWebSocket()
-  # Send the headers back down the pipe.
-  websocket.send($request.headers)
+# proc upgradeHandler(request: Request) =
+#   #[
+#     Given a new request, assume a websocket and upgrade.
+#   ]#
+#   let websocket = request.upgradeToWebSocket()
+#   # Send the headers back down the pipe.
+#   websocket.send($request.headers)
 
 
 proc print_headers(headers: HttpHeaders) =
@@ -47,30 +49,36 @@ proc print_headers(headers: HttpHeaders) =
     echo "  ", key, " = ", value
 
 
-proc indexHandler(request: Request) =
-  # print_headers(request.headers)
-  if request.path.startsWith("/ws") or "Upgrade" in request.headers:
-      upgradeHandler(request)
-      return
+# proc indexHandler(request: Request) =
+#   # print_headers(request.headers)
+#   if request.path.startsWith("/ws") or "Upgrade" in request.headers:
+#       upgradeHandler(request)
+#       return
 
-  var headers: HttpHeaders
-  # Respond with the HTML
-  headers["Content-Type"] = "text/html"
-  # headers["Content-Type"] = "text/plain"
-  # let index_html_content:string =
-  # request.respond(200, headers, $request.headers)
-  request.respond(200, headers, getCachedLocalFileContents("./templates/index.html"))
+#   var headers: HttpHeaders
+#   # Respond with the HTML
+#   headers["Content-Type"] = "text/html"
+#   # headers["Content-Type"] = "text/plain"
+#   # let index_html_content:string =
+#   # request.respond(200, headers, $request.headers)
+#   request.respond(200, headers, getCachedLocalFileContents("./templates/index.html"))
 
 
 proc send_all*(message_kind: MessageKind, message_data: string, exclude_uuid: uint64): int =
   #[ Send a message to _all_ clients. Provide an exclude for ignoring the
     receiver]#
-  for other_uuid, websocket in clientSheet:
-    if other_uuid == exclude_uuid:
-      echo "skipping exclude uuid: ", exclude_uuid
-      continue
-    websocket.send(message_data, message_kind)
-  return 0
+  return websocket_dispatch.send_all(
+      clientSheet,
+      message_kind,
+      message_data,
+      exclude_uuid
+    )
+  # for other_uuid, websocket in clientSheet:
+  #   if other_uuid == exclude_uuid:
+  #     echo "skipping exclude uuid: ", exclude_uuid
+  #     continue
+  #   websocket.send(message_data, message_kind)
+  # return 0
 
 
 proc send*(uuid: uint64, message_kind: MessageKind, message_data: string): int =
@@ -80,26 +88,33 @@ proc send*(uuid: uint64, message_kind: MessageKind, message_data: string): int =
      return int for success - 0 being ok, any other integer representing a
      error code (typically 1)
   ]#
-  if clientSheet.hasKey(uuid):
-    clientSheet[uuid].send(message_data, message_kind)
-    return 0
-  else:
-    echo "Attempted send() to unknown uuid: ", uuid
-    return 1
+  return websocket_dispatch.send(
+      clientSheet,
+      uuid,
+      message_kind,
+      message_data,
+  )
+
+  # if clientSheet.hasKey(uuid):
+  #   clientSheet[uuid].send(message_data, message_kind)
+  #   return 0
+  # else:
+  #   echo "Attempted send() to unknown uuid: ", uuid
+  #   return 1
 
 
-proc call_py_hook(
-  websocket: WebSocket,
-  event: WebSocketEvent,
-  message: Message
-): int =
-  result = 0
-  if pyHook != nil:
-    let info:PyObject = pyHook.callObject(cast[uint64](hash(websocket)), event, message)
-    if cast[pointer](info) != cast[pointer](lib.pyLib.Py_None):
-      # echo "Given: ", $info
-      result = info.to(int)
-    discard info
+# proc call_py_hook(
+#   websocket: WebSocket,
+#   event: WebSocketEvent,
+#   message: Message
+# ): int =
+#   result = 0
+#   if pyHook != nil:
+#     let info:PyObject = pyHook.callObject(cast[uint64](hash(websocket)), event, message)
+#     if cast[pointer](info) != cast[pointer](lib.pyLib.Py_None):
+#       # echo "Given: ", $info
+#       result = info.to(int)
+#     discard info
 
 
 
@@ -128,6 +143,8 @@ proc websocketHandler_print(
     echo websocket, ": close"
 
 
+import hook
+
 proc websocketHandler_hooked(
   websocket: WebSocket,
   event: WebSocketEvent,
@@ -142,87 +159,40 @@ proc websocketHandler_hooked(
         let uuid = cast[uint64](hash(websocket))
         clientSheet[uuid] = websocket
         # echo "Client Sheet Size: ", $clientSheet.len
-    discard call_py_hook(websocket, event, message)
+    discard hook.call_py_hook(websocket, event, message)
 
   of MessageEvent:
     # let message_data: string = move message.data
     # echo message.kind, ": ", message_data
     # If the python hook returns an int,
     # test the int for force socket closure.
-    infoInt = call_py_hook(websocket, event, message)
+    infoInt = hook.call_py_hook(websocket, event, message)
     # echo "resp ", type(info), ":", info
     # websocket.send(message_data, message.kind)
   of ErrorEvent:
     echo "Error event occured: ", $event, " : ", $message
     # websocket.close()
     remove_client(websocket)
-    discard call_py_hook(websocket, event, message)
+    discard hook.call_py_hook(websocket, event, message)
 
   of CloseEvent:
     # echo websocket, ": close"
     # Lock global memory and remove the websocket.
     remove_client(websocket)
-    discard call_py_hook(websocket, event, message)
+    discard hook.call_py_hook(websocket, event, message)
 
   if infoInt == 1:
     # echo "Drop socket", $websocket
     websocket.close()
     remove_client(websocket)
-    discard call_py_hook(websocket, event, message)
+    discard hook.call_py_hook(websocket, event, message)
 
 
-var broadcast_mode*:bool = false
-
-proc websocketHandler_broadcast(
-  websocket: WebSocket,
-  event: WebSocketEvent,
-  message: Message
-) =
-  var infoInt:int = 0
-  case event:
-  of OpenEvent:
-    # echo websocket, ": connected"
-    {.gcsafe.}:
-      withLock lock:
-        let uuid = cast[uint64](hash(websocket))
-        clientSheet[uuid] = websocket
-        # echo "Client Sheet Size: ", $clientSheet.len
-    discard call_py_hook(websocket, event, message)
-
-  of MessageEvent:
-    # let message_data: string = move message.data
-    # echo message.kind, ": ", message_data
-    # If the python hook returns an int,
-    # test the int for force socket closure.
-    infoInt = call_py_hook(websocket, event, message)
-    {.gcsafe.}:
-      withLock lock:
-        if broadcast_mode:
-          let uuid = cast[uint64](hash(websocket))
-          discard send_all(message.kind, message.data, uuid)
-    # echo "resp ", type(info), ":", info
-    # websocket.send(message_data, message.kind)
-  of ErrorEvent:
-    echo "Error event occured: ", $event, " : ", $message
-    # websocket.close()
-    remove_client(websocket)
-    discard call_py_hook(websocket, event, message)
-
-  of CloseEvent:
-    # echo websocket, ": close"
-    # Lock global memory and remove the websocket.
-    remove_client(websocket)
-    discard call_py_hook(websocket, event, message)
-
-  if infoInt == 1:
-    # echo "Drop socket", $websocket
-    websocket.close()
-    remove_client(websocket)
-    discard call_py_hook(websocket, event, message)
+# var broadcast_mode*:bool = false
 
 
-router.get("/**", indexHandler)
-# router.get("/ws", upgradeHandler)
+# router.get("/**", indexHandler)
+## router.get("/ws", upgradeHandler)
 
 
 proc ctrlc() {.noconv.} =
@@ -230,44 +200,62 @@ proc ctrlc() {.noconv.} =
   server.close()
 
 
-proc shutdownThreadProc() =
-  echo "nim::shutdownThreadProc"
+# proc shutdownThreadProc() =
+#   echo "nim::shutdownThreadProc"
 
-  waitFor:
-    sleepAsync(900)
-  echo "closing"
-  try:
-    echo "Should close server"
-    quit(0)
-  except:
-    echo "Fatal error in receive thread: ", getCurrentExceptionMsg()
-    quit(1)
-
-
-proc shutdown_server*(): void =
-  echo "nim::shutdown_server"
-  sleep 1000 # Sleeps for 1000ms = 1s
-  createThread(receiveThread, shutdownThreadProc)
+#   waitFor:
+#     sleepAsync(900)
+#   echo "closing"
+#   try:
+#     echo "Should close server"
+#     quit(0)
+#   except:
+#     echo "Fatal error in receive thread: ", getCurrentExceptionMsg()
+#     quit(1)
 
 
-proc run_timeout_server*(timeout: float = 10): void =
-  server = newServer(router, websocketHandler_hooked)
-  setControlCHook(ctrlc)
-  server.waitUntilReady(timeout)
-  echo "Serve complete"
+# proc shutdown_server*(): void =
+#   echo "nim::shutdown_server"
+#   sleep 1000 # Sleeps for 1000ms = 1s
+#   createThread(receiveThread, shutdownThreadProc)
 
-# import pocketsocketpkg/broadcast
+
+# proc run_timeout_server*(timeout: float = 10): void =
+#   server = newServer(router, websocketHandler_hooked)
+#   setControlCHook(ctrlc)
+#   server.waitUntilReady(timeout)
+#   echo "Serve complete"
+
+from broadcast import websocketHandler_broadcast
+import broadcast
+import ingress
+
+import std/times
+import std/monotimes
+# let a = getMonoTime()
+# let b = getMonoTime()
+
+
+var wake_time: MonoTime = getMonoTime()
+
+proc poke_wake_time*(): void =
+  wake_time = getMonoTime()
+
+proc set_broadcast_mode*(mode:bool): void =
+  broadcast.set_broadcast_mode(mode)
 
 proc run_blocking_server*(address: string = "127.0.0.1", port: int = 8090): void =
   # if isatty(stdout):
   #   run_blocking_server()
   when isMainModule:
     echo(getWelcomeMessage())
-  load_lib()
+  # load_lib()
   submodule.setLoadedTemplate("./templates/index.html")
-  server = newServer(router, websocketHandler_broadcast)
+  server = newServer(ingress.router, broadcast.websocketHandler_broadcast)
   # server = newServer(router, websocketHandler)
   echo "Serving on http://", address, ":", port
   setControlCHook(ctrlc)
+  let total_time: Duration = getMonoTime() - wake_time
+  echo "TTL: ", $total_time
   server.serve(Port(port), address)
   echo "Serve complete"

@@ -1,4 +1,7 @@
 import std/locks, std/sets
+import std/hashes, std/locks, std/tables
+import mummy
+
 import hook
 ## This example shows a basic chat server over WebSocket.
 ##
@@ -19,6 +22,17 @@ var
 initLock(lock)
 
 
+proc send_all*(message_kind: MessageKind, message_data: string, exclude_uuid: uint64): int =
+  #[ Send a message to _all_ clients. Provide an exclude for ignoring the
+    receiver]#
+  for other_uuid, websocket in clientSheet:
+    if other_uuid == exclude_uuid:
+      echo "skipping exclude uuid: ", exclude_uuid
+      continue
+    websocket.send(message_data, message_kind)
+  return 0
+
+
 proc remove_client*(websocket: WebSocket): void =
   {.gcsafe.}:
     withLock lock:
@@ -27,6 +41,11 @@ proc remove_client*(websocket: WebSocket): void =
 
 
 var broadcast_mode*:bool = false
+
+proc set_broadcast_mode*(mode:bool = false): void =
+  echo "broadcast_mode: ", $mode
+  broadcast_mode = mode
+
 
 proc websocketHandler_broadcast*(
   websocket: WebSocket,
@@ -60,11 +79,11 @@ proc websocketHandler_broadcast*(
   of ErrorEvent:
     echo "Error event occured: ", $event, " : ", $message
     # websocket.close()
-    remove_client(websocket)
+    # remove_client(websocket)
     discard call_py_hook(websocket, event, message)
 
   of CloseEvent:
-    # echo websocket, ": close"
+    echo websocket, ": close"
     # Lock global memory and remove the websocket.
     remove_client(websocket)
     discard call_py_hook(websocket, event, message)

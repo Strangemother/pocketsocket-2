@@ -24,7 +24,7 @@ proc getWelcomeMessage*(): string =
     # let base_dir = getAppDir()
     let filepath = Path(base_dir) / Path(filepath_str)
 
-    if loaded_template_str != nil:
+    if cstring(loaded_template_str) != nil:
       return loaded_template_str
     else:
       echo "Template String is nil: ", loaded_template_str ,". Discovering: ", cast[string](filepath)
@@ -52,7 +52,7 @@ proc getCachedLocalFileContents*(filepath_str:string, base_dir=os.getCurrentDir(
 
   #https://forum.nim-lang.org/t/9379
   {.cast(gcsafe).}:
-    if loaded_template_str != nil:
+    if cstring(loaded_template_str) != nil:
       return loaded_template_str
     else:
       echo "Template String is nil: ", loaded_template_str ,". Discovering: ", filepath_str
