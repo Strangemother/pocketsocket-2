@@ -46,6 +46,12 @@ proc set_broadcast_mode*(mode:bool = false): void =
   echo "broadcast_mode: ", $mode
   broadcast_mode = mode
 
+var print_mode*:bool = false
+
+proc set_print_mode*(mode:bool = false): void =
+  echo "print_mode: ", $mode
+  print_mode = mode
+
 
 proc websocketHandler_broadcast*(
   websocket: WebSocket,
@@ -55,7 +61,8 @@ proc websocketHandler_broadcast*(
   var infoInt:int = 0
   case event:
   of OpenEvent:
-    # echo websocket, ": connected"
+    if print_mode:
+      echo websocket, ": connected"
     {.gcsafe.}:
       withLock lock:
         let uuid = cast[uint64](hash(websocket))
@@ -65,7 +72,8 @@ proc websocketHandler_broadcast*(
 
   of MessageEvent:
     # let message_data: string = move message.data
-    # echo message.kind, ": ", message_data
+    if print_mode:
+      echo message.kind, ": ", $message.data
     # If the python hook returns an int,
     # test the int for force socket closure.
     infoInt = call_py_hook(websocket, event, message)
@@ -83,13 +91,15 @@ proc websocketHandler_broadcast*(
     discard call_py_hook(websocket, event, message)
 
   of CloseEvent:
-    echo websocket, ": close"
+    if print_mode:
+      echo websocket, ": close"
     # Lock global memory and remove the websocket.
     remove_client(websocket)
     discard call_py_hook(websocket, event, message)
 
   if infoInt == 1:
-    # echo "Drop socket", $websocket
+    if print_mode:
+      echo "Drop socket", $websocket
     websocket.close()
     remove_client(websocket)
     discard call_py_hook(websocket, event, message)

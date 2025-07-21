@@ -7,7 +7,7 @@ import time
 from threading import Thread
 from multiprocessing import Process
 
-from dist import pocketsocket
+from dist import pocketsocket_server as pocketsocket
 
 ## Prints twice. for each Process
 # print(os.getpid(), dir(pocketsocket))
@@ -19,13 +19,14 @@ def example(uuid, etype, event):
 
     if etype == 0:
         # connect
+
         clients[uuid] = {}
 
     broadcast(etype, event, uuid)
     return 4
 
 
-# pocketsocket.hook(example)
+pocketsocket.hook(example)
 
 
 def broadcast(etype, event, uuid):

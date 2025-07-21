@@ -1,9 +1,11 @@
 nimble c --app:lib ^
-    --out:dist/pocketsocket.pyd ^
+    --out:dist/pocketsocket_server.pyd ^
     --threads:on ^
     --tlsEmulation:off ^
-    --mm:orc ^
-    --skipdeps ^
-    --passL:-static src/pocketsocket.nim
-rem -d:release ^ -d:useMalloc ^
-REM --opt:speed -d:lto -d:strip ^
+    -d:lto ^
+    --mm:arc ^
+    -d:useMalloc ^
+    -d:release ^
+    --opt:speed ^
+    -d:strip ^
+    --passL:-static src/pocketsocketpkg/pocketsocket_server.nim

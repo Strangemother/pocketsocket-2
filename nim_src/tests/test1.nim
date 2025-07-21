@@ -7,6 +7,6 @@
 
 import unittest
 
-import nimsockpkg/submodule
+import pocketsocketpkg/submodule
 test "correct welcome":
   check getWelcomeMessage() == "Hello, World!"

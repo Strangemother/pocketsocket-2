@@ -7,6 +7,7 @@ import dynlib
 import std/files
 import std/paths
 import os
+import mummy
 
 # Make a function prototype
 type
@@ -16,6 +17,13 @@ var
   dll: LibHandle      # Library that's loaded
   update: updateProc  # Function to call, and reload
   loaded_template_str: string
+
+
+
+proc print_headers(headers: HttpHeaders) =
+  # Access request headers in an iterator
+  for (key, value) in headers:
+    echo "  ", key, " = ", value
 
 
 proc getWelcomeMessage*(): string =

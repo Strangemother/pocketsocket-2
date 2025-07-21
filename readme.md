@@ -41,17 +41,28 @@ That's everything. Connect to the waiting server using http or websockets.
 
 ## Features
 
-+ Unexposed Async!
-    The pocketsocket server is async, the hook is not. So you don't need to worry about incoming socket locks.
++ Not Async!
+
+    The pocketsocket server is sync under the hood. So you don't need to worry about incoming socket locks or the colour of functions. Thanks to nim and the underlying package `mummy`, sockets are threaded by default.
+
 + Process and Thread executable:
-    Run a pocketsocket server on a python Process, Thread, or main loop
+
+    Run a pocketsocket server on a python Process, Thread, or main loop. Messages are thread-safe.
+
 + _Singleton style_ Interconnected process hook (lock-ignorant)
+
     All processes or thread can receive from the same hook. Threading occurs on execution of the hooked function.
+
 + It's frickin quick:
+
     Compiled in nim to python as a c-like asset, it's fast as a bullet. The primary server will start in less than 20 milliseconds.
+
 + Unmanaged sockets!
+
     Socket handles are managed **before your python layer**. Your code does not need to solve any handshakes, decoding, or pongs.
+
 + Tiny tiny tiny:
+
     No dependencies, Near 1mb of code when compiled.
 
 
@@ -68,6 +79,7 @@ def my_hook_func(uuid, event_type, data):
     return 0
 
 pocketsocket.hook(my_hook_func)
+pocketsocket.close_remove_client(uuid)
 pocketsocket.send(uuid, message_kind, message_data)
 pocketsocket.send_all(message_kind, message_data, origin_uuid)
 pocketsocket.run_blocking_server(address, port)
@@ -76,6 +88,7 @@ pocketsocket.shutdown_server()
 
 
 Fundamentally the `pocketsocket.hook` function is the receiver for all events.
+
 
 ### An Echo Server:
 
@@ -92,6 +105,7 @@ pocketsocket.hook(echo_receiver)
 
 pocketsocket.run_blocking_server(address, port)
 ```
+
 
 ### A Broadcast Server
 
@@ -110,11 +124,10 @@ pocketsocket.hook(broadcast_receiver)
 pocketsocket.run_blocking_server(address, port)
 ```
 
----
 
 ## How does it Work
 
-Pocketsocket is written in nim-lang, pre-compiled into an isolated `.pyd`. The Pocketsocket server runs independently of your python code, handling the life-cycle incoming sockets. It's self-threading and process-safe, allowing you to leverage the Websocket stack without handling any of it.
+Pocketsocket is written in nim-lang, pre-compiled into an isolated `.pyd`. The Pocketsocket server runs independently of your python code, handling the life-cycle of incoming sockets. It's self-threading and process-safe, allowing you to leverage the Websocket stack without handling any of it.
 
 
 1. Built on-top of nim-mummy server, and its websocket tooling
@@ -128,13 +141,20 @@ I love websockets, but the underlying framework can be a hassle to functionalize
 In many frameworks within the python eco-system some issue occur when upscaling:
 
 + Throughput concurrency
+
     After a few hundred connections, most framework struggle to iterate the open sockets.
+
 + Socket floods
+
     Guarding against flooding is a challenge when python extrapolates the underlying pipe and socket iteration stages. Notably, managing _how much_ comes through a socket isn't always a choice. Compound that with many messages, a single socket can block hundreds of others.
+
 + Overhead
+
     Ingress routines do take time and memory. All sockets need allocating and this also takes memory. In addition larger solutions need processes or threading, and thus a router and shared memory space.
     When scaling horizontal, memory sharing and concurrency through the pipes becomes a challenge.
+
 + _The colour of a function_
+
     Initially I considered async as the next step to solve these challenges, but with that we change the colour of functions and correctly overloading each process is overhead.
 
 **What we actually want**
@@ -148,7 +168,7 @@ Essentially I want to _open sockets_ and just receive agnostic events. My intern
 
 ---
 
-This solution absolutely exists for other protocols - for example _pipes_, _UDP sockets_, HTTP are all stackless (you don't need to manage the socket lifecycle.) and they will scale absolutely.
+This solution absolutely exists for other protocols - for example _pipes_, _UDP sockets_, HTTP are all stackless (you don't need to manage the socket life-cycle.) and they will scale absolutely.
 
 However websockets still has its limits when it comes to implementation. I maintain it's because Websockets are a hassle to scale.
 
@@ -160,6 +180,12 @@ Therefore Pocketsocket _acts_ like its own stack. It handles itself, and the web
 ---
 
 ## Dev Notes
+
+
+    # Compile on Windows:
+    nim c --app:lib --out:mymodule.pyd --threads:on --tlsEmulation:off --passL:-static mymodule
+    # Compile on everything else:
+    nim c --app:lib --out:mymodule.so --threads:on mymodule
 
 
 ### Memory Leak for incoming sockets

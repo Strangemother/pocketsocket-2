@@ -7,7 +7,6 @@ srcDir        = "src"
 installExt    = @["nim"]
 bin           = @["pocketsocket"]
 
-
 # Dependencies
 
 requires "nim >= 2.0.2"

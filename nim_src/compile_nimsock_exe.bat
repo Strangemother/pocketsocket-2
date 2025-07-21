@@ -2,8 +2,10 @@ nimble c --app:console ^
     --out:dist/pocketsocket-cli.exe ^
     --threads:on ^
     --tlsEmulation:off ^
-    -d:release ^
-    --opt:size -d:lto -d:strip ^
+    -d:lto ^
     --mm:arc ^
     -d:useMalloc ^
+    -d:release ^
+    --opt:speed ^
+    -d:strip ^
     --passL:-static src/pocketsocket_cli.nim
