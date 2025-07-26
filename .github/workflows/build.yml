@@ -1,0 +1,35 @@
+name: Nim CI Build
+
+on:
+  push:
+    branches: [ main, github-actions ]
+  pull_request:
+    branches: [ main, github-actions ]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nim
+        uses: iffy/install-nim@v5
+
+      - name: Build project
+        run: nimble build -y
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pocketsocket-${{ runner.os }}
+          path: |
+            pocketsocket
+            pocketsocket.exe
+            pocketsocket.dylib
+            pocketsocket.so
