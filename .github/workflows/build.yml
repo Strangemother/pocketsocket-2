@@ -24,12 +24,16 @@ jobs:
       - name: Build project
         run: nimble build -y
 
+      - name: Build Nim project
+        working-directory: nim_src
+        run: nimble build -y
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pocketsocket-${{ runner.os }}
           path: |
-            pocketsocket
-            pocketsocket.exe
-            pocketsocket.dylib
-            pocketsocket.so
+            nim_src/pocketsocket
+            nim_src/pocketsocket.exe
+            nim_src/pocketsocket.so
+            nim_src/pocketsocket.dylib
