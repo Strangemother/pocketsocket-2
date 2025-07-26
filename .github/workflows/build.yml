@@ -21,9 +21,6 @@ jobs:
       - name: Install Nim
         uses: iffy/install-nim@v5
 
-      - name: Build project
-        run: nimble build -y
-
       - name: Build Nim project
         run: |
           cd nim_src
