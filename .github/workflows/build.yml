@@ -35,6 +35,6 @@ jobs:
           name: pocketsocket-${{ runner.os }}
           path: |
             nim_src/pocketsocket
-            nim_src/pocketsocket.exe
+            nim_src/pocketsocket.dll
             nim_src/pocketsocket.so
             nim_src/pocketsocket.dylib
