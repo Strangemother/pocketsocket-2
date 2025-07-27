@@ -1,6 +1,6 @@
 # Package
-version       = "2.0.3"
-author        = "Jay Jagpal"
+version       = "2.0.4"
+author        = "Strangemother"
 description   = "websocket server"
 license       = "MIT"
 srcDir        = "src"
