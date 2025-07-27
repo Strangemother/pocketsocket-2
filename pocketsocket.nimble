@@ -33,3 +33,8 @@ print(sysconfig.get_config_var("EXT_SUFFIX"))
 
   switch("out", "python" / "pocketsocket" / "pocketsocket_server" & extSuffix)
   setCommand "c", srcDir / "pocketsocketpkg" / "pocketsocket_server.nim"
+
+task buildCliCI, "build pocketsocket-cli for CI":
+  # For simpler logic in CI, tag binary name with target OS and CPU
+  switch("out", toExe(binDir / "pocketsocket-cli-" & hostOS & "_" & hostCPU))
+  setCommand "c", srcDir / "pocketsocket.nim"

@@ -3,7 +3,7 @@ name = "pocketsocket"
 version = "2.0.3"
 description = "Zero config websockets"
 readme = "readme.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = "MIT"
 keywords = []
 authors = [
@@ -44,3 +44,12 @@ commands = [
 
 [tool.hatch.build.targets.wheel.hooks.custom]
 path = "python/hatch_build.py"
+
+[tool.cibuildwheel.linux]
+environment = { PATH = "$HOME/.nimble/bin:$HOME/.local/share/grabnim/current/bin:$PATH" }
+# Install Nim into the Linux build container.
+before-all = [
+    "curl https://codeberg.org/janAkali/grabnim/raw/branch/master/misc/install.sh -sSf | sh",
+    "grabnim",
+    "nimble install --depsOnly -y"
+]
