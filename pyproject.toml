@@ -11,7 +11,7 @@ authors = [
 ]
 
 classifiers = [
-  "Programming Language :: Python",
+    "Programming Language :: Python",
 ]
 
 dependencies = []
@@ -23,5 +23,24 @@ Repository = "https://github.com/Strangemother/pocketsocket-2"
 Issues = "https://github.com/Strangemother/pocketsocket-2/issues"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-build-scripts"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "python/pocketsocket",
+]
+artifacts = [
+    "*.pyd", "*.so"
+]
+
+[[tool.hatch.build.targets.wheel.hooks.build-scripts.scripts]]
+artifacts = [
+    "python/pocketsocket/*.pyd", "python/pocketsocket/*.so"
+]
+commands = [
+    "nimble buildPyd -d:release -d:lto -d:strip"
+]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "python/hatch_build.py"

@@ -1,12 +1,12 @@
 # Package
-version       = "0.1.0"
+version       = "2.0.3"
 author        = "Jay Jagpal"
 description   = "websocket server"
 license       = "MIT"
 srcDir        = "src"
 binDir        = "dist"
 installExt    = @["nim"]
-bin           = @["pocketsocket"]
+namedBin      = {"pocketsocket": "pocketsocket-cli"}.toTable
 
 # Dependencies
 
@@ -18,3 +18,18 @@ requires "docopt"
 requires "zippy >= 0.10.9"
 requires "webby >= 0.2.1"
 requires "crunchy >= 0.1.11"
+
+import std/[os, strutils]
+
+task buildPyd, "build python extension module":
+  var (extSuffix, exitCode) = gorgeEx("python3", """
+import sysconfig
+print(sysconfig.get_config_var("EXT_SUFFIX"))
+""")
+  stripLineEnd(extSuffix)
+
+  if exitCode != 0:
+    raise newException(OSError, "Could not get python native extension suffix")
+
+  switch("out", "python" / "pocketsocket" / "pocketsocket_server" & extSuffix)
+  setCommand "c", srcDir / "pocketsocketpkg" / "pocketsocket_server.nim"
