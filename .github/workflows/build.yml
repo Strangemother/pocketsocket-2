@@ -1,0 +1,69 @@
+name: Build artifacts
+
+on:
+  push:
+    branches:
+      - "*"
+
+  pull_request:
+
+  workflow_call:
+
+# Terminate stale runs early
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-sdist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Hatch
+        uses: pypa/hatch@install
+      - run: hatch build -t sdist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: ./dist/*.tar.gz
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-22.04
+          - ubuntu-22.04-arm
+          - macos-13 # Latest x86 macOS
+          - macos-14 # Oldest supported ARM macOS
+          - windows-2022
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Nim
+        uses: alaviss/setup-nim@0.1.1
+        with:
+          version: version-2-2
+          path: ${{ runner.temp }}/nim
+
+      - name: Build CLI
+        run: nimble buildCliCI -d:release -d:lto -d:strip
+
+      - name: Upload CLI
+        uses: actions/upload-artifact@v4
+        with:
+          name: exe-${{ runner.os }}-${{ runner.arch }}
+          path: dist/pocketsocket-cli*
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.1.1
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ runner.os }}-${{ runner.arch }}
+          path: ./wheelhouse/*.whl

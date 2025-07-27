@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+# Since we are mutating the repository, make sure only one can run at once
+concurrency:
+  group: release
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  release:
+    needs: [build]
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      # INFO: Switch to this if you only want exes uploaded on release
+      #
+      # - name: Download all built binaries
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     pattern: exe-*
+      #     merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*"
+          generate_release_notes: true
+
+  publish-pypi:
+    needs: [build]
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/pocketsocket
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download built sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - name: Download built wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # INFO: This section can be removed for real PyPI
+          repository-url: https://test.pypi.org/legacy/

@@ -1,0 +1,55 @@
+[project]
+name = "pocketsocket"
+version = "2.0.3"
+description = "Zero config websockets"
+readme = "readme.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = []
+authors = [
+    { name="Strangemother", email="pocketsocket@strangemother.com" }
+]
+
+classifiers = [
+    "Programming Language :: Python",
+]
+
+dependencies = []
+
+[project.urls]
+Documentation = "https://github.com/Strangemother/pocketsocket-2#readme"
+Homepage = "https://github.com/Strangemother/pocketsocket-2"
+Repository = "https://github.com/Strangemother/pocketsocket-2"
+Issues = "https://github.com/Strangemother/pocketsocket-2/issues"
+
+[build-system]
+requires = ["hatchling", "hatch-build-scripts"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "python/pocketsocket",
+]
+artifacts = [
+    "*.pyd", "*.so"
+]
+
+[[tool.hatch.build.targets.wheel.hooks.build-scripts.scripts]]
+artifacts = [
+    "python/pocketsocket/*.pyd", "python/pocketsocket/*.so"
+]
+commands = [
+    "nimble buildPyd -d:release -d:lto -d:strip"
+]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "python/hatch_build.py"
+
+[tool.cibuildwheel.linux]
+environment = { PATH = "$HOME/.nimble/bin:$HOME/.local/share/grabnim/current/bin:$PATH" }
+# Install Nim into the Linux build container.
+before-all = [
+    "curl https://codeberg.org/janAkali/grabnim/raw/branch/master/misc/install.sh -sSf | sh",
+    "grabnim",
+    "nimble install --depsOnly -y"
+]

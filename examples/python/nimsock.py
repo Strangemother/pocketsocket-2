@@ -7,7 +7,7 @@ import time
 from threading import Thread
 from multiprocessing import Process
 
-from dist import pocketsocket_server as pocketsocket
+from pocketsocket import pocketsocket_server as pocketsocket
 
 ## Prints twice. for each Process
 # print(os.getpid(), dir(pocketsocket))
