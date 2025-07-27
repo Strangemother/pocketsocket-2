@@ -12,6 +12,8 @@ __pycache__/
 
 # C extensions
 *.so
+*.pyd
+*.dylib
 
 # Distribution / packaging
 .Python
@@ -176,3 +178,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Executables
+.exe
+dist/

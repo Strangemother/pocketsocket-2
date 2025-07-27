@@ -4,6 +4,7 @@ author        = "Jay Jagpal"
 description   = "websocket server"
 license       = "MIT"
 srcDir        = "src"
+binDir        = "dist"
 installExt    = @["nim"]
 bin           = @["pocketsocket"]
 
